@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Buttons -->
+    <string name="search">Search</string>
+    <string name="weekday">Weekday</string>
+    <string name="saturday">Saturday</string>
+    <string name="sunday">Sunday</string>
+    <string name="back">Back</string>
+
+    <!-- labels -->
+    <string name="app_name">Public Transportation</string>
+    <string name="enter_street_name">Enter street name</string>
+    <string name="route_details">Route Details</string>
+    <string name="select_day_option">Select day option</string>
+    <string name="no_route_found">No route found</string>
+    <string name="no_timetable">No timetable</string>
+    <string name="loading">Loading&#8230;</string>
+
+    <!-- Validation Messages -->
+    <string name="error_enter_street_name">You need to enter street name</string>
+    <string name="internet_connection_error">Internet connection error. \n Click outside to close.</string>
+
+</resources>

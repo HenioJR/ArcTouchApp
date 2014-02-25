@@ -18,7 +18,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -27,6 +26,7 @@ import android.widget.TextView;
 import com.publictransportation.R;
 import com.publictransportation.R.layout;
 import com.publictransportation.model.Route;
+import com.publictransportation.model.RoutesArrayAdapter;
 import com.publictransportation.utils.ServerCommunication;
 
 /**
@@ -105,8 +105,8 @@ public class ListSearch extends Activity {
 	private void findRoutesByStopName(){
 		JSONObject paramsJson = this.buildJsonListRoutesByStreetName();
 		
-		AccessServerRoutes accessServer = new AccessServerRoutes();
-		accessServer.execute(paramsJson, "", "");
+		FetchServerRoutes accessServer = new FetchServerRoutes();
+		accessServer.execute(paramsJson);
 	}
 	
 	/**
@@ -147,23 +147,20 @@ public class ListSearch extends Activity {
 	 * @param response
 	 */
 	private void populateListOfRoutes(final JSONObject response){
-		List<String> routesToShow = new ArrayList<String>();
-		listOfRoutesToShow = new ArrayList<Route>();
+		this.listOfRoutesToShow = new ArrayList<Route>();
 		try {
 			JSONArray jsonArray = response.getJSONArray("rows");
 			for (int i = 0; i < jsonArray.length(); i++) {
 				JSONObject object = jsonArray.getJSONObject(i);
 				Route route = new Route(object.getString("id"), object.getString("longName"), object.getString("shortName"));
-				listOfRoutesToShow.add(route);
-				String numberAndNameRoute = object.getString("shortName") + " - " + object.getString("longName");
-				routesToShow.add(numberAndNameRoute);
+				this.listOfRoutesToShow.add(route);
 			}
 		} catch (JSONException e) {
 			// If jsonArray hasn't rows, then there is error on server communication (considered internet connection error) 
 			Log.e("Error to populate list of routes", e.toString());
 			ProgressDialog.show(ListSearch.this, "Error", getString(R.string.internet_connection_error), false, true);
 		}
-		this.showListOfRoutesOrNotFoundToUser(routesToShow);
+		this.showListOfRoutesOrNotFoundToUser();
 	}
 	
 	/**
@@ -171,16 +168,16 @@ public class ListSearch extends Activity {
 	 * 
 	 * @param routesToShow
 	 */
-	private void showListOfRoutesOrNotFoundToUser(final List<String> routesToShow){
-		if(routesToShow.size() > 0){
+	private void showListOfRoutesOrNotFoundToUser(){
+		if(listOfRoutesToShow.size() > 0){
 			this.showRoutesList();
-			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, layout.layout_list_routes, routesToShow);
+			RoutesArrayAdapter adapter = new RoutesArrayAdapter(this, layout.layout_list_routes, this.listOfRoutesToShow);
 			this.listOfRoutesView.setAdapter(adapter);
 			this.listOfRoutesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 				@Override
 				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-					final String selectedRoute = (String) parent.getItemAtPosition(position);
-					Log.i("SelectedRoute", selectedRoute);
+					Route selectedRoute = (Route) parent.getItemAtPosition(position);
+					Log.i("SelectedRoute", selectedRoute.getId());
 					ListSearch.this.showRouteDetails(selectedRoute);
 				}
 			});
@@ -213,9 +210,7 @@ public class ListSearch extends Activity {
 	 * 
 	 * @param numberAndNameRoute
 	 */
-	private void showRouteDetails(final String numberAndNameRoute){
-		Route selectedRoute = this.getSelectedRoute(numberAndNameRoute);
-
+	private void showRouteDetails(final Route selectedRoute){
 		// sending selectedRouteId to activity RouteDetail
 		Intent intent = new Intent(ListSearch.this, RouteDetail.class);
 		Bundle bundle = new Bundle();
@@ -227,42 +222,13 @@ public class ListSearch extends Activity {
 	}
 	
 	/**
-	 * Get selected route by user as object Route
-	 * 
-	 * @param numberAndNameRoute
-	 * @return selectedRoute
-	 */
-	private Route getSelectedRoute(final String numberAndNameRoute){
-		String selectedRouteShortName = numberAndNameRoute.substring(0, numberAndNameRoute.indexOf(" - "));
-		Log.i("selectedRouteShortName", selectedRouteShortName);
-		return this.getRouteByShortName(selectedRouteShortName);
-	}
-	
-	/**
-	 * Receive routeName and return an object Route
-	 * 
-	 * @param selectedRouteShortName
-	 * @return selectedRouteId
-	 */
-	private Route getRouteByShortName(final String selectedRouteShortName){
-		Route selectedRoute = new Route();
-		for(Route route : listOfRoutesToShow){
-			if(selectedRouteShortName.equals(route.getShortName())){
-				selectedRoute = route;
-				break;
-			}
-		}
-		return selectedRoute;
-	}
-	
-	/**
 	 * Execute in background. Access server to order list of routes. 
 	 * This asynchronous task allow maintain a responsive user interface and publish progress.
 	 * 
 	 * @author Henio
 	 * @since 2014/02
 	 */
-	private class AccessServerRoutes extends AsyncTask<Object, String, Object>{
+	private class FetchServerRoutes extends AsyncTask<JSONObject, String, JSONObject>{
 		
 		/**
 		 * Executed before server communication. Show loading message to user.
@@ -278,9 +244,8 @@ public class ListSearch extends Activity {
 		 * Access server to order list of routes.
 		 */
 		@Override
-		protected Object doInBackground(Object... params) {
-			JSONObject paramsJson = (JSONObject) params[0];
-			JSONObject result = ServerCommunication.postData(ListSearch.URL_FIND_ROUTES, paramsJson, 1);
+		protected JSONObject doInBackground(JSONObject... params) {
+			JSONObject result = ServerCommunication.postData(ListSearch.URL_FIND_ROUTES, params[0]);
 			return result;
 		}
 		
@@ -289,8 +254,8 @@ public class ListSearch extends Activity {
 		 * Return to ListSearch to populate results on interface.
 		 */
 		@Override
-		protected void onPostExecute(Object result) {
-			ListSearch.this.populateListOfRoutes((JSONObject) result);
+		protected void onPostExecute(JSONObject result) {
+			ListSearch.this.populateListOfRoutes(result);
 		}
 	}
 

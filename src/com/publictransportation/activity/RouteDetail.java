@@ -116,33 +116,8 @@ public class RouteDetail extends Activity {
 	 * Get route details by id and populate on interface
 	 */
 	private void findRouteDetailsById(){
-		JSONObject paramsJson = this.buildJsonDetails();
-		
 		AccessServerDetails accessServer = new AccessServerDetails();
-		accessServer.execute(paramsJson, "", "");
-	}
-	
-	/**
-	 * Build a JSONObject to get route details by id on server
-	 * 
-	 * JSON format:
-	 * 
-	 * {"params":
-	 * 		{
-	 *  		"routeId": 17
-	 *  	}
-	 *  }
-	 */
-	private JSONObject buildJsonDetails(){
-		JSONObject paramsJson = new JSONObject();
-		try {
-			JSONObject routeIdJson = new JSONObject();
-			routeIdJson.put("routeId", this.selectedRouteId);
-			paramsJson.put("params", routeIdJson);
-		} catch (JSONException e) {
-			Log.e("Error to build routeIdJson", e.toString());
-		}
-		return paramsJson;
+		accessServer.execute();
 	}
 	
 	/**
@@ -154,20 +129,20 @@ public class RouteDetail extends Activity {
 		Log.i("Selected timetable", day);
 		
 		List<String> listToPopulate = new ArrayList<String>();
-		if(RouteDetail.WEEKDAY.equals(day)){
+		if(RouteDetail.WEEKDAY.equalsIgnoreCase(day)){
 			if(this.timeTableWeekday == null){
-				this.timeTableWeekday = this.getCorrectTimetable(day);
+				this.timeTableWeekday = this.getSelectedTimetable(day);
 			}
 			listToPopulate = this.timeTableWeekday;
-		} else if(RouteDetail.SATURDAY.equals(day)){
+		} else if(RouteDetail.SATURDAY.equalsIgnoreCase(day)){
 			if(this.timeTableSaturday == null){
-				this.timeTableSaturday = this.getCorrectTimetable(day);
+				this.timeTableSaturday = this.getSelectedTimetable(day);
 			}
 			listToPopulate = this.timeTableSaturday;
 		} else {
 			// SUNDAY
 			if(this.timeTableSunday == null){
-				this.timeTableSunday = this.getCorrectTimetable(day);
+				this.timeTableSunday = this.getSelectedTimetable(day);
 			} 
 			listToPopulate = this.timeTableSunday;
 		}
@@ -190,13 +165,13 @@ public class RouteDetail extends Activity {
 	 * @param day
 	 * @return timeTable
 	 */
-	private List<String> getCorrectTimetable(final String day){
+	private List<String> getSelectedTimetable(final String day){
 		List<String> timeTable = new ArrayList<String>();
 		try {
 			JSONArray jsonArray = this.routeDetailsJson.getJSONArray("rows");
 			for (int i = 0; i < jsonArray.length(); i++) {
 				JSONObject object = jsonArray.getJSONObject(i);
-				if(day.equals(object.getString("calendar"))){
+				if(day.equalsIgnoreCase(object.getString("calendar"))){
 					timeTable.add(object.getString("time"));
 				}
 			}
@@ -219,7 +194,7 @@ public class RouteDetail extends Activity {
 		@Override
 		public void onClick(View v) {
 			Button button = (Button) v;
-			RouteDetail.this.populateTimetableOfDay(button.getText().toString().toUpperCase());
+			RouteDetail.this.populateTimetableOfDay(button.getText().toString());
 		}
 	}
 	
@@ -230,7 +205,7 @@ public class RouteDetail extends Activity {
 	 * @author Henio
 	 * @since 2014/02
 	 */
-	private class AccessServerDetails extends AsyncTask<Object, String, Object>{
+	private class AccessServerDetails extends AsyncTask<JSONObject, String, JSONObject>{
 
 		/**
 		 * Executed before server communication. Show loading message to user
@@ -244,9 +219,9 @@ public class RouteDetail extends Activity {
 		 * Access server to order route details
 		 */
 		@Override
-		protected Object doInBackground(Object... params) {
-			JSONObject paramsJson = (JSONObject) params[0];
-			JSONObject result = ServerCommunication.postData(RouteDetail.URL_FIND_DEPARTURES_BY_ROUTE_ID, paramsJson, 2);
+		protected JSONObject doInBackground(JSONObject... params) {
+			final JSONObject routeDetailJson = this.buildJsonDetails();
+			JSONObject result = ServerCommunication.postData(RouteDetail.URL_FIND_DEPARTURES_BY_ROUTE_ID, routeDetailJson);
 			return result;
 		}
 		
@@ -255,9 +230,32 @@ public class RouteDetail extends Activity {
 		 * Returnto RouteDetail to populate details on interface
 		 */
 		@Override
-		protected void onPostExecute(Object result) {
-			RouteDetail.this.routeDetailsJson = (JSONObject) result;
+		protected void onPostExecute(JSONObject result) {
+			RouteDetail.this.routeDetailsJson = result;
 			RouteDetail.this.populateInterface();
+		}
+		
+		/**
+		 * Build a JSONObject to get route details by id on server
+		 * 
+		 * JSON format:
+		 * 
+		 * {"params":
+		 * 		{
+		 *  		"routeId": 17
+		 *  	}
+		 *  }
+		 */
+		private JSONObject buildJsonDetails(){
+			JSONObject paramsJson = new JSONObject();
+			try {
+				JSONObject routeIdJson = new JSONObject();
+				routeIdJson.put("routeId", RouteDetail.this.selectedRouteId);
+				paramsJson.put("params", routeIdJson);
+			} catch (JSONException e) {
+				Log.e("Error to build routeIdJson", e.toString());
+			}
+			return paramsJson;
 		}
 	}
 }

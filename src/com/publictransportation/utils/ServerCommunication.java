@@ -33,7 +33,7 @@ public class ServerCommunication {
 	 * @param paramsJson
 	 * @return JSONObject
 	 */
-	public static JSONObject postData(final String url, final JSONObject paramsJson, int mockJson){
+	public static JSONObject postData(final String url, final JSONObject paramsJson){
 		JSONObject responseJson = new JSONObject();
 		HttpClient httpClient = new DefaultHttpClient();
 		HttpPost httpPost = new HttpPost(ServerCommunication.SERVER_URL + url);
@@ -60,12 +60,11 @@ public class ServerCommunication {
 			Log.i("responseJson Server", data.toString());
 			responseJson = new JSONObject(data.toString());
 
-		}
-		catch (UnknownHostException e){
+		}catch (UnknownHostException e){
 			Log.e("ServerCommunication - Internet Connection Error", e.toString());
-		} catch (Exception e) {
+		}catch (Exception e) {
 			Log.e("ServerCommunication", e.toString());
 		} 
 		return responseJson;
-	}
+	}	
 }
